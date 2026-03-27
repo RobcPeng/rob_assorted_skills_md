@@ -31,7 +31,7 @@ discover_skills() {
         [ -f "${dir}SKILL.md" ] || continue
         skills+=("$(basename "$dir")")
     done
-    echo "${skills[@]}"
+    echo "${skills[@]+"${skills[@]}"}"
 }
 
 # Compute content hash for a skill directory
@@ -93,10 +93,9 @@ get_status_label() {
 }
 
 # Display interactive menu, return selected indices (0-based) in SELECTED array
+# Uses global arrays: _menu_names, _menu_labels
 show_menu() {
-    local -n skill_names=$1
-    local -n skill_labels=$2
-    local count=${#skill_names[@]}
+    local count=${#_menu_names[@]}
 
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -107,7 +106,7 @@ show_menu() {
     echo ""
 
     for ((i = 0; i < count; i++)); do
-        printf "  [%d] %-30s (%s)\n" $((i + 1)) "${skill_names[$i]}" "${skill_labels[$i]}"
+        printf "  [%d] %-30s (%s)\n" $((i + 1)) "${_menu_names[$i]}" "${_menu_labels[$i]}"
     done
 
     echo ""
@@ -205,7 +204,9 @@ if [ "$FLAG_ALL" = true ]; then
     echo "  Custom Skills Deployer (--all)"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 else
-    show_menu skill_names skill_labels
+    _menu_names=("${skill_names[@]}")
+    _menu_labels=("${skill_labels[@]}")
+    show_menu
 fi
 
 if [ ${#SELECTED[@]} -eq 0 ]; then
@@ -226,10 +227,10 @@ for idx in "${SELECTED[@]}"; do
     label="${skill_labels[$idx]}"
 
     if deploy_skill "$name" "$hash" "$label"; then
-        ((deployed++))
+        ((deployed++)) || true
     else
         echo "  Error deploying ${name}"
-        ((errors++))
+        ((errors++)) || true
     fi
 done
 
@@ -244,7 +245,7 @@ for ((i = 0; i < ${#skill_names[@]}; i++)); do
     done
     if [ "$selected" = false ]; then
         echo "  ${skill_names[$i]}: ${skill_labels[$i]}"
-        ((skipped++))
+        ((skipped++)) || true
     fi
 done
 
