@@ -92,45 +92,82 @@ get_status_label() {
     fi
 }
 
-# Display interactive menu, return selected indices (0-based) in SELECTED array
+# Display interactive toggle menu, return selected indices (0-based) in SELECTED array
 # Uses global arrays: _menu_names, _menu_labels
+# Controls: number to toggle, 'a' select all, 'n' select none, 'd' deploy, 'q' quit
 show_menu() {
     local count=${#_menu_names[@]}
+    local selected=()
 
-    echo ""
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  Custom Skills Deployer"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo ""
-    echo "Available skills in deployable_skills/:"
-    echo ""
-
+    # Initialize: pre-select NEW and UPDATED skills
     for ((i = 0; i < count; i++)); do
-        printf "  [%d] %-30s (%s)\n" $((i + 1)) "${_menu_names[$i]}" "${_menu_labels[$i]}"
+        if [[ "${_menu_labels[$i]}" == "NEW" || "${_menu_labels[$i]}" == "UPDATED" ]]; then
+            selected[$i]=1
+        else
+            selected[$i]=0
+        fi
     done
 
-    echo ""
-    read -rp "Select skills to deploy (comma-separated, 'a' for all, 'q' to quit): " input
+    while true; do
+        # Clear screen and draw menu
+        printf "\033[2J\033[H"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "  Custom Skills Deployer"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Toggle skills with their number, then press 'd' to deploy:"
+        echo ""
 
-    SELECTED=()
-    if [[ "$input" == "q" || -z "$input" ]]; then
-        return
-    fi
-
-    if [[ "$input" == "a" || "$input" == "all" ]]; then
         for ((i = 0; i < count; i++)); do
-            SELECTED+=("$i")
+            local marker=" "
+            if [[ "${selected[$i]}" == "1" ]]; then
+                marker="x"
+            fi
+            printf "  [%s] %d. %-28s (%s)\n" "$marker" $((i + 1)) "${_menu_names[$i]}" "${_menu_labels[$i]}"
         done
-        return
-    fi
 
-    IFS=',' read -ra selections <<< "$input"
-    for sel in "${selections[@]}"; do
-        sel=$(echo "$sel" | tr -d ' ')
-        if [[ "$sel" =~ ^[0-9]+$ ]] && ((sel >= 1 && sel <= count)); then
-            SELECTED+=($((sel - 1)))
-        else
-            echo "Warning: invalid selection '$sel', skipping"
+        echo ""
+        echo "  a = select all  n = select none  d = deploy  q = quit"
+        echo ""
+        read -rp "> " input
+
+        if [[ "$input" == "q" ]]; then
+            SELECTED=()
+            return
+        fi
+
+        if [[ "$input" == "d" ]]; then
+            SELECTED=()
+            for ((i = 0; i < count; i++)); do
+                if [[ "${selected[$i]}" == "1" ]]; then
+                    SELECTED+=("$i")
+                fi
+            done
+            return
+        fi
+
+        if [[ "$input" == "a" ]]; then
+            for ((i = 0; i < count; i++)); do
+                selected[$i]=1
+            done
+            continue
+        fi
+
+        if [[ "$input" == "n" ]]; then
+            for ((i = 0; i < count; i++)); do
+                selected[$i]=0
+            done
+            continue
+        fi
+
+        # Toggle by number
+        if [[ "$input" =~ ^[0-9]+$ ]] && ((input >= 1 && input <= count)); then
+            local idx=$((input - 1))
+            if [[ "${selected[$idx]}" == "1" ]]; then
+                selected[$idx]=0
+            else
+                selected[$idx]=1
+            fi
         fi
     done
 }
