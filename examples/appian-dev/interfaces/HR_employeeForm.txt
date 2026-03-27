@@ -1,0 +1,156 @@
+/* Interface: HR_employeeForm */
+/* Type: Start Form / Task Form */
+/* Description: Create or edit an employee record with personal info, department, and manager selection */
+/* Rule Inputs: ri!employee (Map), ri!isReadOnly (Boolean) */
+
+a!localVariables(
+  local!employee: ri!employee,
+  local!isNew: a!isNullOrEmpty(local!employee.id),
+  a!formLayout(
+    label: if(local!isNew, "New Employee", "Edit Employee"),
+    instructions: "Complete all required fields below.",
+    contents: {
+      a!sectionLayout(
+        label: "Personal Information",
+        contents: {
+          a!columnsLayout(
+            columns: {
+              a!columnLayout(
+                contents: {
+                  a!textField(
+                    label: "First Name",
+                    value: local!employee.firstName,
+                    saveInto: local!employee.firstName,
+                    required: true,
+                    readOnly: ri!isReadOnly,
+                    characterLimit: 255
+                  ),
+                  a!textField(
+                    label: "Last Name",
+                    value: local!employee.lastName,
+                    saveInto: local!employee.lastName,
+                    required: true,
+                    readOnly: ri!isReadOnly,
+                    characterLimit: 255
+                  )
+                }
+              ),
+              a!columnLayout(
+                contents: {
+                  a!textField(
+                    label: "Email",
+                    value: local!employee.email,
+                    saveInto: local!employee.email,
+                    required: true,
+                    readOnly: ri!isReadOnly,
+                    validations: if(
+                      and(
+                        a!isNotNullOrEmpty(local!employee.email),
+                        not(like(local!employee.email, "%@%.%"))
+                      ),
+                      "Enter a valid email address",
+                      {}
+                    )
+                  ),
+                  a!textField(
+                    label: "Phone",
+                    value: local!employee.phone,
+                    saveInto: local!employee.phone,
+                    readOnly: ri!isReadOnly,
+                    placeholder: "(555) 555-5555"
+                  )
+                }
+              )
+            }
+          )
+        }
+      ),
+      a!sectionLayout(
+        label: "Employment Details",
+        contents: {
+          a!columnsLayout(
+            columns: {
+              a!columnLayout(
+                contents: {
+                  a!dropdownField(
+                    label: "Department",
+                    placeholder: "-- Select Department --",
+                    choiceLabels: cons!HR_DEPARTMENT_LABELS,
+                    choiceValues: cons!HR_DEPARTMENT_VALUES,
+                    value: local!employee.department,
+                    saveInto: local!employee.department,
+                    required: true,
+                    disabled: ri!isReadOnly
+                  ),
+                  a!dropdownField(
+                    label: "Employment Type",
+                    placeholder: "-- Select --",
+                    choiceLabels: {"Full-Time", "Part-Time", "Contractor", "Intern"},
+                    choiceValues: {"FT", "PT", "CTR", "INT"},
+                    value: local!employee.employmentType,
+                    saveInto: local!employee.employmentType,
+                    required: true,
+                    disabled: ri!isReadOnly
+                  )
+                }
+              ),
+              a!columnLayout(
+                contents: {
+                  a!dateField(
+                    label: "Start Date",
+                    value: local!employee.startDate,
+                    saveInto: local!employee.startDate,
+                    required: true,
+                    readOnly: ri!isReadOnly
+                  ),
+                  a!pickerFieldRecords(
+                    label: "Manager",
+                    recordType: recordType!Employee,
+                    value: local!employee.managerId,
+                    saveInto: local!employee.managerId,
+                    readOnly: ri!isReadOnly
+                  )
+                }
+              )
+            }
+          )
+        }
+      ),
+      a!sectionLayout(
+        label: "Notes",
+        contents: {
+          a!paragraphField(
+            label: "Additional Notes",
+            value: local!employee.notes,
+            saveInto: local!employee.notes,
+            readOnly: ri!isReadOnly,
+            height: "MEDIUM"
+          )
+        }
+      )
+    },
+    buttons: a!buttonLayout(
+      primaryButtons: {
+        a!buttonWidget(
+          label: if(local!isNew, "Create Employee", "Save Changes"),
+          submit: true,
+          style: "SOLID",
+          color: "ACCENT",
+          validate: true,
+          saveInto: ri!employee,
+          value: local!employee,
+          showWhen: not(ri!isReadOnly)
+        )
+      },
+      secondaryButtons: {
+        a!buttonWidget(
+          label: "Cancel",
+          submit: true,
+          style: "OUTLINE",
+          validate: false,
+          showWhen: not(ri!isReadOnly)
+        )
+      }
+    )
+  )
+)

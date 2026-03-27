@@ -1,0 +1,17 @@
+/* Rule: rule!HR_formatCurrency */
+/* Description: Formats a number as USD currency string */
+/* Inputs: ri!amount (Decimal), ri!showCents (Boolean, optional - default true) */
+/* Returns: Text (e.g., "$1,234.56" or "$1,235") */
+
+a!localVariables(
+  local!showCents: a!defaultValue(ri!showCents, true),
+  if(
+    a!isNullOrEmpty(ri!amount),
+    "$0.00",
+    "$" & if(
+      local!showCents,
+      text(ri!amount, "#,##0.00"),
+      text(ri!amount, "#,##0")
+    )
+  )
+)

@@ -1,0 +1,30 @@
+/* Rule: rule!HR_validateEmail */
+/* Description: Validates an email address and returns error message or empty list */
+/* Inputs: ri!email (Text) */
+/* Returns: List of Text (validation errors, empty if valid) */
+
+a!localVariables(
+  local!errors: {},
+  local!errors: if(
+    a!isNullOrEmpty(ri!email),
+    append(local!errors, "Email is required"),
+    {
+      if(
+        not(like(ri!email, "%@%.%")),
+        append(local!errors, "Email must contain @ and a domain"),
+        local!errors
+      ),
+      if(
+        len(ri!email) > 254,
+        append(local!errors, "Email must be 254 characters or fewer"),
+        {}
+      ),
+      if(
+        like(ri!email, "% %"),
+        append(local!errors, "Email must not contain spaces"),
+        {}
+      )
+    }
+  ),
+  local!errors
+)

@@ -1,0 +1,173 @@
+/* Interface: HR_recordSummary */
+/* Type: Record Summary View */
+/* Description: Employee record summary with header, key details, and quick actions */
+/* Uses: rv!record (Employee record) */
+
+a!headerContentLayout(
+  header: {
+    a!columnsLayout(
+      columns: {
+        a!columnLayout(
+          width: "WIDE",
+          contents: {
+            a!richTextDisplayField(
+              value: {
+                a!richTextItem(
+                  text: rv!record[recordType!Employee.fields.firstName] & " " &
+                        rv!record[recordType!Employee.fields.lastName],
+                  size: "LARGE_PLUS",
+                  style: "STRONG"
+                ),
+                char(10),
+                a!richTextItem(
+                  text: rv!record[recordType!Employee.fields.jobTitle] & " | " &
+                        rv!record[recordType!Employee.fields.department],
+                  size: "MEDIUM",
+                  color: "SECONDARY"
+                )
+              }
+            )
+          }
+        ),
+        a!columnLayout(
+          width: "NARROW",
+          contents: {
+            a!tagField(
+              tags: a!tagItem(
+                text: rv!record[recordType!Employee.fields.status],
+                backgroundColor: if(
+                  rv!record[recordType!Employee.fields.status] = "ACTIVE",
+                  "POSITIVE",
+                  "NEGATIVE"
+                )
+              ),
+              align: "END"
+            )
+          }
+        )
+      }
+    )
+  },
+  contents: {
+    a!columnsLayout(
+      columns: {
+        a!columnLayout(
+          contents: {
+            a!sectionLayout(
+              label: "Contact Information",
+              contents: {
+                a!sideBySideLayout(
+                  items: {
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(text: "Email", color: "SECONDARY")
+                      ),
+                      width: "MINIMIZE"
+                    ),
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(
+                          text: rv!record[recordType!Employee.fields.email],
+                          link: a!safeLink(
+                            uri: "mailto:" & rv!record[recordType!Employee.fields.email]
+                          )
+                        )
+                      )
+                    )
+                  }
+                ),
+                a!sideBySideLayout(
+                  items: {
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(text: "Phone", color: "SECONDARY")
+                      ),
+                      width: "MINIMIZE"
+                    ),
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(
+                          text: a!defaultValue(
+                            rv!record[recordType!Employee.fields.phone],
+                            "Not provided"
+                          )
+                        )
+                      )
+                    )
+                  }
+                )
+              }
+            )
+          }
+        ),
+        a!columnLayout(
+          contents: {
+            a!sectionLayout(
+              label: "Employment Details",
+              contents: {
+                a!sideBySideLayout(
+                  items: {
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(text: "Start Date", color: "SECONDARY")
+                      ),
+                      width: "MINIMIZE"
+                    ),
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(
+                          text: text(rv!record[recordType!Employee.fields.startDate], "MMMM dd, yyyy")
+                        )
+                      )
+                    )
+                  }
+                ),
+                a!sideBySideLayout(
+                  items: {
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(text: "Manager", color: "SECONDARY")
+                      ),
+                      width: "MINIMIZE"
+                    ),
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(
+                          text: rv!record[recordType!Employee.relationships.manager.fields.firstName] & " " &
+                                rv!record[recordType!Employee.relationships.manager.fields.lastName],
+                          link: a!recordLink(
+                            recordType: recordType!Employee,
+                            identifier: rv!record[recordType!Employee.fields.managerId]
+                          )
+                        )
+                      )
+                    )
+                  }
+                ),
+                a!sideBySideLayout(
+                  items: {
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(text: "Tenure", color: "SECONDARY")
+                      ),
+                      width: "MINIMIZE"
+                    ),
+                    a!sideBySideItem(
+                      item: a!richTextDisplayField(
+                        value: a!richTextItem(
+                          text: rule!HR_calculateTenure(
+                            startDate: rv!record[recordType!Employee.fields.startDate]
+                          )
+                        )
+                      )
+                    )
+                  }
+                )
+              }
+            )
+          }
+        )
+      }
+    )
+  }
+)

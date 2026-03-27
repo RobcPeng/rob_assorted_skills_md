@@ -1,0 +1,302 @@
+/* Interface: HR_employeeDashboard */
+/* Type: Report / Dashboard */
+/* Description: Executive dashboard showing headcount KPIs, department breakdown, and recent hires */
+/* Rule Inputs: none */
+
+a!localVariables(
+  local!totalActive: a!queryRecordType(
+    recordType: recordType!Employee,
+    fields: a!aggregationFields(
+      groupings: {},
+      measures: a!measure(field: recordType!Employee.fields.id, function: "COUNT")
+    ),
+    filters: a!queryFilter(
+      field: recordType!Employee.fields.status,
+      operator: "=",
+      value: "ACTIVE"
+    )
+  ).data,
+  local!departmentCounts: a!queryRecordType(
+    recordType: recordType!Employee,
+    fields: a!aggregationFields(
+      groupings: a!grouping(
+        field: recordType!Employee.fields.department,
+        alias: "department"
+      ),
+      measures: a!measure(
+        field: recordType!Employee.fields.id,
+        function: "COUNT",
+        alias: "count"
+      )
+    ),
+    filters: a!queryFilter(
+      field: recordType!Employee.fields.status,
+      operator: "=",
+      value: "ACTIVE"
+    ),
+    pagingInfo: a!pagingInfo(
+      startIndex: 1,
+      batchSize: 20,
+      sort: a!sortInfo(field: "count", ascending: false)
+    )
+  ).data,
+  local!recentHires: a!queryRecordType(
+    recordType: recordType!Employee,
+    fields: {
+      recordType!Employee.fields.id,
+      recordType!Employee.fields.firstName,
+      recordType!Employee.fields.lastName,
+      recordType!Employee.fields.department,
+      recordType!Employee.fields.startDate
+    },
+    filters: a!queryLogicalExpression(
+      operator: "AND",
+      filters: {
+        a!queryFilter(
+          field: recordType!Employee.fields.status,
+          operator: "=",
+          value: "ACTIVE"
+        ),
+        a!queryFilter(
+          field: recordType!Employee.fields.startDate,
+          operator: ">=",
+          value: edate(today(), -1)
+        )
+      }
+    ),
+    pagingInfo: a!pagingInfo(
+      startIndex: 1,
+      batchSize: 10,
+      sort: a!sortInfo(
+        field: recordType!Employee.fields.startDate,
+        ascending: false
+      )
+    )
+  ).data,
+  local!hiredThisMonth: a!queryRecordType(
+    recordType: recordType!Employee,
+    fields: a!aggregationFields(
+      groupings: {},
+      measures: a!measure(field: recordType!Employee.fields.id, function: "COUNT")
+    ),
+    filters: a!queryLogicalExpression(
+      operator: "AND",
+      filters: {
+        a!queryFilter(
+          field: recordType!Employee.fields.startDate,
+          operator: ">=",
+          value: todate(year(today()) & "-" & month(today()) & "-01")
+        ),
+        a!queryFilter(
+          field: recordType!Employee.fields.status,
+          operator: "=",
+          value: "ACTIVE"
+        )
+      }
+    )
+  ).data,
+
+  a!headerContentLayout(
+    header: {
+      a!cardLayout(
+        contents: {
+          a!richTextDisplayField(
+            value: {
+              a!richTextItem(text: "HR Dashboard", size: "LARGE", style: "STRONG"),
+              char(10),
+              a!richTextItem(
+                text: "Employee headcount and hiring overview",
+                color: "SECONDARY"
+              )
+            }
+          )
+        },
+        style: "NONE",
+        padding: "STANDARD"
+      )
+    },
+    contents: {
+      /* KPI Cards Row */
+      a!columnsLayout(
+        columns: {
+          a!columnLayout(
+            contents: {
+              a!cardLayout(
+                contents: {
+                  a!richTextDisplayField(
+                    value: {
+                      a!richTextItem(text: "Total Active", color: "SECONDARY"),
+                      char(10),
+                      a!richTextItem(
+                        text: text(local!totalActive[1].count, "#,##0"),
+                        size: "LARGE_PLUS",
+                        style: "STRONG"
+                      )
+                    },
+                    align: "CENTER"
+                  )
+                },
+                style: "ACCENT",
+                padding: "STANDARD"
+              )
+            }
+          ),
+          a!columnLayout(
+            contents: {
+              a!cardLayout(
+                contents: {
+                  a!richTextDisplayField(
+                    value: {
+                      a!richTextItem(text: "Hired This Month", color: "SECONDARY"),
+                      char(10),
+                      a!richTextItem(
+                        text: text(local!hiredThisMonth[1].count, "#,##0"),
+                        size: "LARGE_PLUS",
+                        style: "STRONG"
+                      )
+                    },
+                    align: "CENTER"
+                  )
+                },
+                style: "ACCENT",
+                padding: "STANDARD"
+              )
+            }
+          ),
+          a!columnLayout(
+            contents: {
+              a!cardLayout(
+                contents: {
+                  a!richTextDisplayField(
+                    value: {
+                      a!richTextItem(text: "Departments", color: "SECONDARY"),
+                      char(10),
+                      a!richTextItem(
+                        text: text(length(local!departmentCounts), "#,##0"),
+                        size: "LARGE_PLUS",
+                        style: "STRONG"
+                      )
+                    },
+                    align: "CENTER"
+                  )
+                },
+                style: "ACCENT",
+                padding: "STANDARD"
+              )
+            }
+          )
+        }
+      ),
+
+      /* Department Breakdown & Recent Hires */
+      a!columnsLayout(
+        columns: {
+          a!columnLayout(
+            width: "MEDIUM",
+            contents: {
+              a!sectionLayout(
+                label: "Headcount by Department",
+                contents: {
+                  a!forEach(
+                    items: local!departmentCounts,
+                    expression: a!columnsLayout(
+                      columns: {
+                        a!columnLayout(
+                          width: "MEDIUM",
+                          contents: {
+                            a!richTextDisplayField(
+                              value: a!richTextItem(text: fv!item.department)
+                            )
+                          }
+                        ),
+                        a!columnLayout(
+                          width: "NARROW",
+                          contents: {
+                            a!richTextDisplayField(
+                              value: a!richTextItem(
+                                text: text(fv!item.count, "#,##0"),
+                                style: "STRONG"
+                              ),
+                              align: "END"
+                            )
+                          }
+                        )
+                      }
+                    )
+                  )
+                }
+              )
+            }
+          ),
+          a!columnLayout(
+            width: "WIDE",
+            contents: {
+              a!sectionLayout(
+                label: "Recent Hires (Last 30 Days)",
+                contents: {
+                  if(
+                    length(local!recentHires) = 0,
+                    a!richTextDisplayField(
+                      value: a!richTextItem(text: "No recent hires", color: "SECONDARY")
+                    ),
+                    a!forEach(
+                      items: local!recentHires,
+                      expression: a!cardLayout(
+                        contents: {
+                          a!sideBySideLayout(
+                            items: {
+                              a!sideBySideItem(
+                                item: a!richTextDisplayField(
+                                  value: {
+                                    a!richTextItem(
+                                      text: fv!item[recordType!Employee.fields.firstName] & " " &
+                                            fv!item[recordType!Employee.fields.lastName],
+                                      style: "STRONG",
+                                      link: a!recordLink(
+                                        recordType: recordType!Employee,
+                                        identifier: fv!item[recordType!Employee.fields.id]
+                                      )
+                                    )
+                                  }
+                                )
+                              ),
+                              a!sideBySideItem(
+                                item: a!richTextDisplayField(
+                                  value: a!richTextItem(
+                                    text: fv!item[recordType!Employee.fields.department],
+                                    color: "SECONDARY"
+                                  )
+                                ),
+                                width: "MINIMIZE"
+                              ),
+                              a!sideBySideItem(
+                                item: a!richTextDisplayField(
+                                  value: a!richTextItem(
+                                    text: text(
+                                      fv!item[recordType!Employee.fields.startDate],
+                                      "MMM dd"
+                                    ),
+                                    color: "SECONDARY"
+                                  ),
+                                  align: "END"
+                                ),
+                                width: "MINIMIZE"
+                              )
+                            }
+                          )
+                        },
+                        style: "NONE",
+                        padding: "EVEN_LESS",
+                        marginBelow: "EVEN_LESS"
+                      )
+                    )
+                  )
+                }
+              )
+            }
+          )
+        }
+      )
+    }
+  )
+)

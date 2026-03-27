@@ -1,0 +1,47 @@
+/* Rule: rule!HR_getActiveEmployees */
+/* Description: Returns paginated list of active employees, optionally filtered by department */
+/* Inputs: ri!department (Text, optional), ri!pagingInfo (PagingInfo, optional) */
+/* Returns: List of Employee records */
+
+a!localVariables(
+  local!paging: a!defaultValue(
+    ri!pagingInfo,
+    a!pagingInfo(
+      startIndex: 1,
+      batchSize: 50,
+      sort: a!sortInfo(
+        field: recordType!Employee.fields.lastName,
+        ascending: true
+      )
+    )
+  ),
+  a!queryRecordType(
+    recordType: recordType!Employee,
+    fields: {
+      recordType!Employee.fields.id,
+      recordType!Employee.fields.firstName,
+      recordType!Employee.fields.lastName,
+      recordType!Employee.fields.email,
+      recordType!Employee.fields.department,
+      recordType!Employee.fields.startDate,
+      recordType!Employee.relationships.manager.fields.firstName
+    },
+    filters: a!queryLogicalExpression(
+      operator: "AND",
+      filters: {
+        a!queryFilter(
+          field: recordType!Employee.fields.status,
+          operator: "=",
+          value: "ACTIVE"
+        ),
+        a!queryFilter(
+          field: recordType!Employee.fields.department,
+          operator: "=",
+          value: ri!department
+        )
+      },
+      ignoreFiltersWithEmptyValues: true
+    ),
+    pagingInfo: local!paging
+  ).data
+)

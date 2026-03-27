@@ -1,0 +1,224 @@
+/* Interface: HR_wizardOnboarding */
+/* Type: Task Form (multi-step wizard) */
+/* Description: 3-step employee onboarding wizard: Personal Info -> IT Setup -> Review & Submit */
+/* Rule Inputs: ri!employee (Map), ri!itSetup (Map) */
+
+a!localVariables(
+  local!currentStep: 1,
+  local!employee: ri!employee,
+  local!itSetup: a!defaultValue(ri!itSetup, a!map(
+    needsLaptop: true,
+    needsMonitor: false,
+    softwareRequests: {},
+    accessGroups: {}
+  )),
+  local!totalSteps: 3,
+
+  a!formLayout(
+    label: "Employee Onboarding",
+    instructions: "Step " & local!currentStep & " of " & local!totalSteps,
+    contents: {
+      /* Step indicator */
+      a!milestoneField(
+        steps: {"Personal Info", "IT Setup", "Review & Submit"},
+        active: local!currentStep
+      ),
+
+      /* Step 1: Personal Information */
+      showWhen(
+        local!currentStep = 1,
+        a!sectionLayout(
+          label: "Personal Information",
+          contents: {
+            a!columnsLayout(
+              columns: {
+                a!columnLayout(
+                  contents: {
+                    a!textField(
+                      label: "First Name",
+                      value: local!employee.firstName,
+                      saveInto: local!employee.firstName,
+                      required: true
+                    ),
+                    a!textField(
+                      label: "Last Name",
+                      value: local!employee.lastName,
+                      saveInto: local!employee.lastName,
+                      required: true
+                    ),
+                    a!textField(
+                      label: "Email",
+                      value: local!employee.email,
+                      saveInto: local!employee.email,
+                      required: true,
+                      validations: if(
+                        and(
+                          a!isNotNullOrEmpty(local!employee.email),
+                          not(like(local!employee.email, "%@%.%"))
+                        ),
+                        "Enter a valid email address",
+                        {}
+                      )
+                    )
+                  }
+                ),
+                a!columnLayout(
+                  contents: {
+                    a!dropdownField(
+                      label: "Department",
+                      placeholder: "-- Select --",
+                      choiceLabels: cons!HR_DEPARTMENT_LABELS,
+                      choiceValues: cons!HR_DEPARTMENT_VALUES,
+                      value: local!employee.department,
+                      saveInto: local!employee.department,
+                      required: true
+                    ),
+                    a!textField(
+                      label: "Job Title",
+                      value: local!employee.jobTitle,
+                      saveInto: local!employee.jobTitle,
+                      required: true
+                    ),
+                    a!dateField(
+                      label: "Start Date",
+                      value: local!employee.startDate,
+                      saveInto: local!employee.startDate,
+                      required: true
+                    )
+                  }
+                )
+              }
+            )
+          }
+        )
+      ),
+
+      /* Step 2: IT Setup */
+      showWhen(
+        local!currentStep = 2,
+        a!sectionLayout(
+          label: "IT Equipment & Access",
+          contents: {
+            a!checkboxField(
+              label: "Equipment Needed",
+              choiceLabels: {"Laptop", "External Monitor", "Docking Station", "Headset"},
+              choiceValues: {"laptop", "monitor", "dock", "headset"},
+              value: local!itSetup.equipment,
+              saveInto: local!itSetup.equipment
+            ),
+            a!checkboxField(
+              label: "Software Licenses",
+              choiceLabels: {"Microsoft Office", "Slack", "Jira", "Figma", "IntelliJ"},
+              choiceValues: {"office", "slack", "jira", "figma", "intellij"},
+              value: local!itSetup.softwareRequests,
+              saveInto: local!itSetup.softwareRequests
+            ),
+            a!checkboxField(
+              label: "Access Groups",
+              choiceLabels: {"VPN", "Internal Wiki", "Code Repository", "HR Portal", "Finance Portal"},
+              choiceValues: {"vpn", "wiki", "code", "hr", "finance"},
+              value: local!itSetup.accessGroups,
+              saveInto: local!itSetup.accessGroups
+            ),
+            a!paragraphField(
+              label: "Special IT Requests",
+              value: local!itSetup.specialRequests,
+              saveInto: local!itSetup.specialRequests,
+              placeholder: "Any additional IT needs...",
+              height: "SHORT"
+            )
+          }
+        )
+      ),
+
+      /* Step 3: Review & Submit */
+      showWhen(
+        local!currentStep = 3,
+        {
+          a!sectionLayout(
+            label: "Review: Personal Information",
+            contents: {
+              a!columnsLayout(
+                columns: {
+                  a!columnLayout(
+                    contents: {
+                      a!textField(label: "Name", value: local!employee.firstName & " " & local!employee.lastName, readOnly: true),
+                      a!textField(label: "Email", value: local!employee.email, readOnly: true)
+                    }
+                  ),
+                  a!columnLayout(
+                    contents: {
+                      a!textField(label: "Department", value: local!employee.department, readOnly: true),
+                      a!textField(label: "Job Title", value: local!employee.jobTitle, readOnly: true),
+                      a!textField(label: "Start Date", value: text(local!employee.startDate, "MMM dd, yyyy"), readOnly: true)
+                    }
+                  )
+                }
+              )
+            }
+          ),
+          a!sectionLayout(
+            label: "Review: IT Setup",
+            contents: {
+              a!textField(
+                label: "Equipment",
+                value: joinarray(local!itSetup.equipment, ", "),
+                readOnly: true
+              ),
+              a!textField(
+                label: "Software",
+                value: joinarray(local!itSetup.softwareRequests, ", "),
+                readOnly: true
+              ),
+              a!textField(
+                label: "Access Groups",
+                value: joinarray(local!itSetup.accessGroups, ", "),
+                readOnly: true
+              )
+            }
+          )
+        }
+      )
+    },
+    buttons: a!buttonLayout(
+      primaryButtons: {
+        a!buttonWidget(
+          label: "Next",
+          style: "SOLID",
+          color: "ACCENT",
+          saveInto: a!save(local!currentStep, local!currentStep + 1),
+          validate: true,
+          showWhen: local!currentStep < local!totalSteps
+        ),
+        a!buttonWidget(
+          label: "Submit Onboarding",
+          submit: true,
+          style: "SOLID",
+          color: "ACCENT",
+          validate: true,
+          saveInto: {
+            ri!employee,
+            a!save(ri!employee, local!employee),
+            a!save(ri!itSetup, local!itSetup)
+          },
+          showWhen: local!currentStep = local!totalSteps
+        )
+      },
+      secondaryButtons: {
+        a!buttonWidget(
+          label: "Back",
+          style: "OUTLINE",
+          saveInto: a!save(local!currentStep, local!currentStep - 1),
+          validate: false,
+          showWhen: local!currentStep > 1
+        ),
+        a!buttonWidget(
+          label: "Cancel",
+          submit: true,
+          style: "OUTLINE",
+          validate: false
+        )
+      }
+    )
+  )
+)

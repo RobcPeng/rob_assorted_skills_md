@@ -1,0 +1,65 @@
+/* Integration: HR_getExternalUserProfile */
+/* Connected System: cons!HR_IDENTITY_PROVIDER_CS */
+/* Method: GET */
+/* Path: /api/v2/users/{ri!externalUserId} */
+/* Description: Fetches a user profile from the external identity provider (e.g., Okta, Azure AD) */
+/* Rule Inputs: ri!externalUserId (Text) */
+
+/* Usage in an interface: */
+a!localVariables(
+  local!result: rule!HR_getExternalUserProfile(externalUserId: ri!externalUserId),
+  local!profile: if(local!result.success, local!result.result.body, null),
+
+  if(
+    local!result.success,
+    a!sectionLayout(
+      label: "External Profile",
+      contents: {
+        a!columnsLayout(
+          columns: {
+            a!columnLayout(
+              contents: {
+                a!textField(
+                  label: "Display Name",
+                  value: local!profile.displayName,
+                  readOnly: true
+                ),
+                a!textField(
+                  label: "Email",
+                  value: local!profile.email,
+                  readOnly: true
+                )
+              }
+            ),
+            a!columnLayout(
+              contents: {
+                a!textField(
+                  label: "External ID",
+                  value: local!profile.id,
+                  readOnly: true
+                ),
+                a!textField(
+                  label: "Last Login",
+                  value: text(local!profile.lastLogin, "MMM dd, yyyy hh:mm a"),
+                  readOnly: true
+                )
+              }
+            )
+          }
+        )
+      }
+    ),
+    a!cardLayout(
+      contents: {
+        a!richTextDisplayField(
+          value: a!richTextItem(
+            text: "Unable to load external profile: " & local!result.error.message,
+            color: "NEGATIVE"
+          )
+        )
+      },
+      style: "ERROR",
+      padding: "STANDARD"
+    )
+  )
+)

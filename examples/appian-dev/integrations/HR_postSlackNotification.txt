@@ -1,0 +1,57 @@
+/* Integration: HR_postSlackNotification */
+/* Connected System: cons!HR_SLACK_WEBHOOK_CS */
+/* Method: POST */
+/* Path: /services/hooks/incoming-webhook */
+/* Description: Sends a formatted notification to a Slack channel (e.g., new hire announcement) */
+/* Rule Inputs: ri!channel (Text), ri!employeeName (Text), ri!department (Text), ri!startDate (Date) */
+
+/* Usage in a process model node or interface button: */
+a!localVariables(
+  local!payload: a!toJson(
+    a!map(
+      channel: ri!channel,
+      username: "HR Bot",
+      icon_emoji: ":wave:",
+      blocks: {
+        a!map(
+          type: "header",
+          text: a!map(
+            type: "plain_text",
+            text: "New Team Member Joining!"
+          )
+        ),
+        a!map(
+          type: "section",
+          fields: {
+            a!map(type: "mrkdwn", text: "*Name:*" & char(10) & ri!employeeName),
+            a!map(type: "mrkdwn", text: "*Department:*" & char(10) & ri!department),
+            a!map(type: "mrkdwn", text: "*Start Date:*" & char(10) & text(ri!startDate, "MMMM dd, yyyy"))
+          }
+        ),
+        a!map(
+          type: "context",
+          elements: {
+            a!map(
+              type: "mrkdwn",
+              text: "Sent from Appian HR at " & text(now(), "hh:mm a")
+            )
+          }
+        )
+      }
+    )
+  ),
+
+  /* Call the integration */
+  local!result: rule!HR_postSlackNotification(
+    channel: ri!channel,
+    employeeName: ri!employeeName,
+    department: ri!department,
+    startDate: ri!startDate
+  ),
+
+  if(
+    local!result.success,
+    "Notification sent successfully",
+    "Failed to send notification: " & local!result.error.message
+  )
+)

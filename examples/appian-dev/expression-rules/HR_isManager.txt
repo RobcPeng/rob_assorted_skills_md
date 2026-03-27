@@ -1,0 +1,33 @@
+/* Rule: rule!HR_isManager */
+/* Description: Checks whether the given employee has any direct reports */
+/* Inputs: ri!employeeId (Integer) */
+/* Returns: Boolean */
+
+a!localVariables(
+  local!directReports: a!queryRecordType(
+    recordType: recordType!Employee,
+    fields: a!aggregationFields(
+      groupings: {},
+      measures: a!measure(
+        field: recordType!Employee.fields.id,
+        function: "COUNT"
+      )
+    ),
+    filters: a!queryLogicalExpression(
+      operator: "AND",
+      filters: {
+        a!queryFilter(
+          field: recordType!Employee.fields.managerId,
+          operator: "=",
+          value: ri!employeeId
+        ),
+        a!queryFilter(
+          field: recordType!Employee.fields.status,
+          operator: "=",
+          value: "ACTIVE"
+        )
+      }
+    )
+  ).data,
+  local!directReports[1].count > 0
+)
